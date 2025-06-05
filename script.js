@@ -10,7 +10,7 @@ const submitBtn = document.getElementById("submitBtn");
 async function fetchRandomSong() {
   try {
     const proxy = "https://corsproxy.io/?";
-    const terms = ["pop", "r&b", "folk", "hip-hop", "funk", "rap"];
+    const terms = ["pop", "r&b", "folk", "hip-hop", "funk", "rap", "dance", "pop-punk"];
     const searchTerm = terms[Math.floor(Math.random() * terms.length)];
     const url = `https://api.deezer.com/search?q=${encodeURIComponent(searchTerm)}`;
 
