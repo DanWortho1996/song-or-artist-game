@@ -1,48 +1,78 @@
-let currentSong = null;
+let currentSong = {};
 let score = 0;
 
-async function getRandomSong() {
-  const proxy = "https://corsproxy.io/?";
-  const apiURL = "https://api.deezer.com/chart";
+const guessInput = document.getElementById("guess");
+const audio = document.getElementById("audio");
+const result = document.getElementById("result");
+const albumCover = document.getElementById("albumCover");
+const submitBtn = document.getElementById("submitBtn");
 
+async function fetchRandomSong() {
   try {
-    const response = await fetch(proxy + apiURL);
-    const data = await response.json();
-    const tracks = data.tracks.data;
+    const proxy = "https://corsproxy.io/?";
+    const terms = ["love", "party", "dance", "summer", "happy", "night"];
+    const searchTerm = terms[Math.floor(Math.random() * terms.length)];
+    const url = `https://api.deezer.com/search?q=${encodeURIComponent(searchTerm)}`;
 
-    const song = tracks[Math.floor(Math.random() * tracks.length)];
+    const response = await fetch(proxy + encodeURIComponent(url));
+    const data = await response.json();
+
+    const tracks = data.data.filter(track => track.preview);
+    const randomTrack = tracks[Math.floor(Math.random() * tracks.length)];
+
     currentSong = {
-      title: song.title.toLowerCase(),
-      artist: song.artist.name.toLowerCase()
+      title: randomTrack.title.toLowerCase(),
+      artist: randomTrack.artist.name.toLowerCase(),
+      preview: randomTrack.preview,
+      cover: randomTrack.album.cover_medium
     };
 
-    document.getElementById("audio").src = song.preview;
-    document.getElementById("result").textContent = "";
-    document.getElementById("guess").value = "";
+    albumCover.style.display = "none";
+    audio.src = currentSong.preview;
+    result.textContent = "";
+
+    // DON'T autoplay here to avoid browser error
+
   } catch (error) {
     console.error("Error fetching song:", error);
-    document.getElementById("result").textContent = "Error loading song. Try refreshing.";
+    result.textContent = "⚠️ Could not load a song. Try refreshing.";
   }
 }
 
 function checkGuess() {
-  const guess = document.getElementById("guess").value.toLowerCase();
-  const result = document.getElementById("result");
-
+  const guess = guessInput.value.toLowerCase();
   if (!guess) return;
 
   if (guess.includes(currentSong.title) || guess.includes(currentSong.artist)) {
     score += 3;
     result.textContent = `✅ Correct! Score: ${score}`;
-    setTimeout(getRandomSong, 2000);
+
+    albumCover.src = currentSong.cover;
+    albumCover.style.display = "block";
+
+    setTimeout(() => {
+      guessInput.value = "";
+      albumCover.style.display = "none";
+      fetchRandomSong();
+    }, 2000);
   } else {
-    result.textContent = `❌ Wrong! The answer was "${currentSong.title}" by ${currentSong.artist}. Your score: ${score}`;
-    score = 0; // Reset score on wrong guess
-    setTimeout(getRandomSong, 4000);
+    result.textContent = `❌ Wrong! It was "${currentSong.title}" by ${currentSong.artist}. Score: ${score}`;
+    score = 0;
+    setTimeout(() => {
+      guessInput.value = "";
+      fetchRandomSong();
+    }, 3000);
   }
 }
 
-window.onload = function () {
-  document.getElementById("submitBtn").addEventListener("click", checkGuess);
-  getRandomSong();
-};
+submitBtn.addEventListener("click", () => {
+  // Play audio only after user clicks submit (interaction)
+  audio.play().catch(() => {
+    // Ignore play errors if any
+  });
+
+  checkGuess();
+});
+
+// Initial fetch but no autoplay
+fetchRandomSong();
